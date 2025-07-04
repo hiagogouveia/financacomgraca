@@ -1,16 +1,15 @@
 # Nome do workflow, visível na aba 'Actions' do GitHub
-name: Testar Conexão SFTP Hostinger
+name: Deploy Finança com Graça para Hostinger (com SSH Key)
 
 # Define quando o workflow será executado
 on:
-  workflow_dispatch: # Permite acionar o workflow manualmente na aba 'Actions' do GitHub
-  # push:
-  #   branches:
-  #     - main # Opcional: descomente para rodar a cada push na main
+  push:
+    branches:
+      - main # O workflow será ativado sempre que houver um push para a branch 'main'
 
 # Define os jobs (tarefas) que serão executados
 jobs:
-  test-connection:
+  build-and-deploy:
     # O ambiente onde o job será executado (máquina virtual do GitHub Actions)
     runs-on: ubuntu-latest
 
@@ -19,25 +18,43 @@ jobs:
     - name: 1. Checkout do repositório
       uses: actions/checkout@v4 # Clona o seu repositório no ambiente do GitHub Actions
 
-    - name: 2. Configurar Chave SSH (Opcional, mas útil para outros comandos SSH)
-      # Esta etapa configura a chave no ssh-agent. A próxima etapa usará a chave diretamente.
-      uses: webfactory/ssh-agent@v0.9.0
+    - name: 2. Configurar Node.js
+      uses: actions/setup-node@v4 # Configura o ambiente Node.js
       with:
-        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+        node-version: '20' # Use a versão do Node.js que seu projeto utiliza (ex: '18', '20', '22')
 
-    - name: 3. Testar Conexão SSH e Listar Arquivos
-      # Usa a ação 'appleboy/ssh-action' para executar comandos SSH no servidor
-      uses: appleboy/ssh-action@v1.0.3 # Versão estável da ação SSH
+    - name: 3. Instalar dependências do projeto
+      # Executa o comando npm install para baixar todas as dependências
+      run: npm install
+
+    - name: 4. Construir o projeto (Build)
+      # Executa o comando de build definido no seu package.json para gerar a pasta 'dist'
+      run: npm run build
+
+    - name: 5. Fazer Deploy para Hostinger via SFTP (com SSH Key)
+      # Utiliza a ação 'appleboy/ssh-action' para realizar o deploy via SFTP com SSH Key
+      uses: appleboy/ssh-action@v1.0.3 # Reutiliza a ação que comprovadamente conecta
       with:
         host: ${{ secrets.SFTP_HOST }}
         username: ${{ secrets.SFTP_USERNAME }}
-        # Chave SSH privada: Passamos o segredo diretamente para a ação
-        key: ${{ secrets.SSH_PRIVATE_KEY }} # <-- Adicionado este input
-        # A porta SSH/SFTP. Use a porta 22 ou o segredo SFTP_PORT se for diferente.
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
         port: ${{ secrets.SFTP_PORT || 22 }} # Usa 22 como padrão se SFTP_PORT não estiver definido
-        # O comando a ser executado no servidor remoto.
-        # 'ls -la' lista arquivos e diretórios detalhadamente.
-        # Substitua o caminho abaixo pelo caminho completo da sua public_html na Hostinger.
+        # O comando 'sync' é o que fará a transferência dos arquivos via SFTP
+        # Ele sincroniza o localPath com o remotePath
         script: |
-          echo "Conectando e listando arquivos em: ${{ secrets.REMOTE_TARGET }}"
-          ls -la /home/u994595627/domains/financacomgraca.com.br/public_html/
+          echo "Iniciando sincronização de arquivos para ${{ secrets.REMOTE_TARGET }}"
+          # O rsync é uma ferramenta poderosa para sincronização de arquivos via SSH.
+          # -a: modo arquivo (preserva permissões, owner, group, timestamps)
+          # -v: verbose (mostra o que está sendo copiado)
+          # -z: comprime dados durante a transferência
+          # --delete: apaga arquivos no destino que não existem na origem (garante que o servidor reflita o build)
+          # --exclude 'node_modules': exclui a pasta node_modules do deploy
+          # --exclude '.git': exclui a pasta .git do deploy
+          # O caminho local é ./dist/ (que é onde o build gera os arquivos)
+          # O caminho remoto é ${{ secrets.REMOTE_TARGET }}
+          rsync -avz --delete -e "ssh -p ${{ secrets.SFTP_PORT || 22 }} -i /home/runner/.ssh/id_rsa -o StrictHostKeyChecking=no" ./dist/ ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }}:${{ secrets.REMOTE_TARGET }}
+          echo "Sincronização concluída."
+        # Ação 'appleboy/ssh-action' não tem um input 'localPath' ou 'remotePath' direto para SFTP sync.
+        # Precisamos usar o 'script' e o 'rsync' para isso.
+        # O 'rsync' precisa da chave privada, que já está configurada no ssh-agent pela etapa 2.
+        # O StrictHostKeyChecking=no é adicionado para evitar problemas com a primeira conexão.
