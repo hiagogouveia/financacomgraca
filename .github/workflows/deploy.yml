@@ -19,8 +19,8 @@ jobs:
     - name: 1. Checkout do repositório
       uses: actions/checkout@v4 # Clona o seu repositório no ambiente do GitHub Actions
 
-    - name: 2. Configurar Chave SSH
-      # Usa uma ação para configurar a chave SSH no ambiente do runner
+    - name: 2. Configurar Chave SSH (Opcional, mas útil para outros comandos SSH)
+      # Esta etapa configura a chave no ssh-agent. A próxima etapa usará a chave diretamente.
       uses: webfactory/ssh-agent@v0.9.0
       with:
         ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
@@ -31,6 +31,8 @@ jobs:
       with:
         host: ${{ secrets.SFTP_HOST }}
         username: ${{ secrets.SFTP_USERNAME }}
+        # Chave SSH privada: Passamos o segredo diretamente para a ação
+        key: ${{ secrets.SSH_PRIVATE_KEY }} # <-- Adicionado este input
         # A porta SSH/SFTP. Use a porta 22 ou o segredo SFTP_PORT se for diferente.
         port: ${{ secrets.SFTP_PORT || 22 }} # Usa 22 como padrão se SFTP_PORT não estiver definido
         # O comando a ser executado no servidor remoto.
