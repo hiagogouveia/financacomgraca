@@ -33,7 +33,7 @@ jobs:
 
     - name: 5. Fazer Deploy para Hostinger via SFTP (com SSH Key)
       # Utiliza uma ação de terceiros para realizar o deploy via SFTP
-      uses: SamKirkland/FTP-Deploy@v4 # <-- ATUALIZADO para a versão v4
+      uses: SamKirkland/FTP-Deploy@v4.3.0 # <-- ATUALIZADO para a versão v4.3.0
       with:
         # Servidor SFTP (host), obtido do GitHub Secret
         server: ${{ secrets.SFTP_HOST }}
