@@ -36,7 +36,9 @@ const Button = React.forwardRef(({ className, variant, size, asChild = false, ..
 	const Comp = asChild ? Slot : 'button';
 	return (
 		<Comp
-			className={cn(buttonVariants({ variant, size, className }))}
+			// CORREÇÃO AQUI: Passamos 'className' como um argumento separado para 'cn'
+			// Isso garante que suas classes externas sejam combinadas com as classes geradas por buttonVariants.
+			className={cn(buttonVariants({ variant, size }), className)}
 			ref={ref}
 			{...props}
 		/>
