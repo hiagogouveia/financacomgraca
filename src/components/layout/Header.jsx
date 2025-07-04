@@ -37,7 +37,7 @@ const Header = () => {
 
           <Button 
             asChild
-            className="btn-primary hidden lg:flex"
+            className="btn-primary hidden lg:flex whitespace-nowrap" 
           >
             <a href="https://t.me" target="_blank" rel="noopener noreferrer">Inscrever-se</a>
           </Button>

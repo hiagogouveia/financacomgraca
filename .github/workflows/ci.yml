@@ -1,0 +1,61 @@
+# Nome do workflow, visível na aba 'Actions' do GitHub
+name: Deploy Finança com Graça para Hostinger (com SSH Key)
+
+# Define quando o workflow será executado
+on:
+  push:
+    branches:
+      - main # O workflow será ativado sempre que houver um push para a branch 'main'
+
+# Define os jobs (tarefas) que serão executados
+jobs:
+  build-and-deploy:
+    # O ambiente onde o job será executado (máquina virtual do GitHub Actions)
+    runs-on: ubuntu-latest
+
+    # Passos a serem executados neste job
+    steps:
+    - name: 1. Checkout do repositório
+      uses: actions/checkout@v4 # Clona o seu repositório no ambiente do GitHub Actions
+
+    - name: 2. Configurar Node.js
+      uses: actions/setup-node@v4 # Configura o ambiente Node.js
+      with:
+        node-version: '20' # Use a versão do Node.js que seu projeto utiliza (ex: '18', '20', '22')
+
+    - name: 3. Instalar dependências do projeto
+      # Executa o comando npm install para baixar todas as dependências
+      run: npm install
+
+    - name: 4. Construir o projeto (Build)
+      # Executa o comando de build definido no seu package.json para gerar a pasta 'dist'
+      run: npm run build
+
+    - name: 5. Fazer Deploy para Hostinger via SFTP (com SSH Key)
+      # Utiliza uma ação de terceiros para realizar o deploy via SFTP
+      uses: SamKirkland/FTP-Deploy@v3.1.1
+      with:
+        # Servidor SFTP (host), obtido do GitHub Secret
+        server: ${{ secrets.SFTP_HOST }}
+        # Nome de usuário SFTP, obtido do GitHub Secret. Para SSH, este é o usuário SSH.
+        username: ${{ secrets.SFTP_USERNAME }}
+        # Chave SSH privada, obtida do GitHub Secret (NUNCA coloque a chave diretamente aqui!)
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        # Protocolo de transferência: SFTP é obrigatório para usar chaves SSH.
+        protocol: sftp
+        # Porta SFTP. A porta padrão é 22. Se for diferente, use o GitHub Secret SFTP_PORT aqui:
+        # port: ${{ secrets.SFTP_PORT }}
+        port: 22 # Mantenha 22 se a Hostinger não especificar outra porta para SFTP/SSH
+        # O diretório local que contém os arquivos que serão enviados (sua pasta 'dist')
+        local-dir: ./dist/
+        # O diretório remoto no servidor Hostinger onde os arquivos serão colocados, usando a variável de ambiente
+        remote-dir: ${{ secrets.REMOTE_TARGET }} # <-- Atualizado para usar o segredo REMOTE_TARGET
+        # Opcional: delete-remote: true
+        # Se descomentado, esta opção apaga arquivos no servidor que não existem na sua pasta 'dist'.
+        # Isso garante que o servidor esteja sempre com a versão exata do seu build.
+        # Cuidado ao usar, pois apagará arquivos que não estão no seu repositório local 'dist'.
+        # delete-remote: true
+        # Opcional: dry-run: true
+        # Se descomentado, o deploy será apenas simulado, sem enviar arquivos de fato.
+        # Útil para testar a configuração antes do deploy real.
+        # dry-run: true
