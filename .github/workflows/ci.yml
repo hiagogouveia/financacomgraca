@@ -33,7 +33,7 @@ jobs:
 
     - name: 5. Fazer Deploy para Hostinger via SFTP (com SSH Key)
       # Utiliza uma ação de terceiros para realizar o deploy via SFTP
-      uses: SamKirkland/FTP-Deploy@v3.1.1
+      uses: SamKirkland/FTP-Deploy@v4 # <-- ATUALIZADO para a versão v4
       with:
         # Servidor SFTP (host), obtido do GitHub Secret
         server: ${{ secrets.SFTP_HOST }}
@@ -49,7 +49,7 @@ jobs:
         # O diretório local que contém os arquivos que serão enviados (sua pasta 'dist')
         local-dir: ./dist/
         # O diretório remoto no servidor Hostinger onde os arquivos serão colocados, usando a variável de ambiente
-        remote-dir: ${{ secrets.REMOTE_TARGET }} # <-- Atualizado para usar o segredo REMOTE_TARGET
+        remote-dir: ${{ secrets.REMOTE_TARGET }}
         # Opcional: delete-remote: true
         # Se descomentado, esta opção apaga arquivos no servidor que não existem na sua pasta 'dist'.
         # Isso garante que o servidor esteja sempre com a versão exata do seu build.
